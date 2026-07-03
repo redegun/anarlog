@@ -12,6 +12,15 @@ fn main() {
     #[cfg(target_os = "macos")]
     println!("cargo:rustc-link-arg=-fapple-link-rtlib");
 
+    // Fork fix (M0): sqlx-sqlite (libsqlite3-sys) and the legacy importer's libsql (libsql-ffi)
+    // each statically bundle their own SQLite, so the C symbols collide at final link
+    // (LNK2005/LNK1169). MSVC's linker is strict where lld/ld tolerate it. Both are
+    // ABI-compatible SQLite builds, so let the linker take the first definition. Scoped to the
+    // final binary link here (not global rustflags) to avoid recompiling the whole dep graph.
+    // Cleaner long-term fix: drop the legacy importer plugin (the only libsql-ffi consumer).
+    #[cfg(all(target_os = "windows", target_env = "msvc"))]
+    println!("cargo:rustc-link-arg=/FORCE:MULTIPLE");
+
     #[cfg(target_os = "macos")]
     build_check_permissions();
 

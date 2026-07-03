@@ -532,6 +532,14 @@ function useConfiguredMapping(): Record<
     queries: [...soniqoModels.map((m) => sttModelQueries.isDownloaded(m.key))],
   });
 
+  // Fork add-on: multilingual whisper.cpp models (batch), surfaced on all platforms so
+  // Windows/Linux have a Russian-capable local STT (upstream only offers Parakeet/Argmax here).
+  const whisperModels = localModels.filter((m) => m.model_type === "whispercpp");
+
+  const whisperDownloaded = useQueries({
+    queries: [...whisperModels.map((m) => sttModelQueries.isDownloaded(m.key))],
+  });
+
   return Object.fromEntries(
     PROVIDERS.map((provider) => {
       const config = configuredProviders[providerRowId("stt", provider.id)] as
@@ -555,6 +563,18 @@ function useConfiguredMapping(): Record<
         const models: ModelEntry[] = [
           { id: "cloud", isDownloaded: billing.isPaid, category: "latest" },
         ];
+
+        // Fork add-on: expose multilingual whisper.cpp models (batch) on every platform.
+        whisperModels.forEach((model, i) => {
+          models.push({
+            id: model.key,
+            isDownloaded: whisperDownloaded[i]?.data ?? false,
+            displayName: model.display_name,
+            sizeBytes: model.size_bytes,
+            mode: "batch",
+            category: "latest",
+          });
+        });
 
         if (isAppleSilicon) {
           soniqoModels.forEach((model, i) => {

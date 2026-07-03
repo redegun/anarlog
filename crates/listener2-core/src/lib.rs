@@ -66,6 +66,13 @@ pub fn is_supported_languages_batch(
         return Ok(true);
     }
 
+    // Fork fix: whisper.cpp (BatchProvider::WhisperLocal) is multilingual (large-v3-turbo),
+    // so accept any language. Without this it falls through to AdapterKind::from_str and errors,
+    // which makes the batch silently fall back to soniqo.
+    if provider == "whispercpp" {
+        return Ok(true);
+    }
+
     if provider == "soniqo" {
         let model = model
             .ok_or_else(|| "missing_model: soniqo".to_string())?

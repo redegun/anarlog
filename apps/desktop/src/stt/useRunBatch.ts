@@ -82,6 +82,9 @@ export function getBatchProvider(
   if (provider === "hyprnote") {
     if (model.startsWith("soniqo-")) return "soniqo";
     if (model.startsWith("am-")) return "am";
+    // Fork fix: on-device whisper.cpp models (keys like "QuantizedLargeTurbo") route to the
+    // internal whisper server via BatchProvider::WhisperLocal ("whispercpp"), not the cloud.
+    if (model.startsWith("whisper-") || model.startsWith("Quantized")) return "whispercpp";
     return "hyprnote";
   }
   if (DIRECT_BATCH_PROVIDERS.has(provider as TranscriptionParams["provider"])) {

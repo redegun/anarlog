@@ -194,7 +194,10 @@ impl LocalModel {
 
         match self {
             LocalModel::Soniqo(model) => model.is_available_on_current_platform(),
-            LocalModel::Whisper(_) => is_apple_silicon,
+            // Fork change: whisper.cpp is cross-platform and we build it with the `actual`
+            // feature on Windows/Linux/macOS, so expose it everywhere (upstream gated it to
+            // Apple Silicon only). This is what gives Windows a Russian-capable local STT.
+            LocalModel::Whisper(_) => true,
             LocalModel::Am(_) => is_apple_silicon,
             LocalModel::GgufLlm(_) => cfg!(target_arch = "aarch64"),
         }

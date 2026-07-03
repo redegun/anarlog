@@ -1,6 +1,12 @@
 pub use hypr_local_model::{AmModel, LocalModel, SoniqoModel, WhisperModel};
 
 pub static SUPPORTED_MODELS: &[LocalModel] = &[
+    // Fork add-on: multilingual whisper.cpp models for batch transcription. Upstream dropped
+    // whisper.cpp from the selectable list in favour of Parakeet (Soniqo, English-only) and
+    // Argmax (Apple Silicon only), leaving Windows/Linux without a Russian-capable local STT.
+    // whisper.cpp large-v3-turbo (multilingual) handles Russian well; Small is a lighter option.
+    LocalModel::Whisper(WhisperModel::QuantizedLargeTurbo),
+    LocalModel::Whisper(WhisperModel::QuantizedSmall),
     LocalModel::Soniqo(SoniqoModel::ParakeetStreaming),
     LocalModel::Soniqo(SoniqoModel::ParakeetBatch),
     LocalModel::Am(AmModel::ParakeetV2),

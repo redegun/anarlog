@@ -57,7 +57,14 @@ export function getBaseLanguageDisplayName(
   displayLocale = "en",
 ): string {
   const { language } = parseLocale(code);
-  return getDisplayNames(displayLocale).of(language) ?? code;
+  if (!language) {
+    return code;
+  }
+  try {
+    return getDisplayNames(displayLocale).of(language) ?? code;
+  } catch {
+    return code;
+  }
 }
 
 export function getBaseLanguageCode(code: string): string {
@@ -92,8 +99,18 @@ export function parseLocale(code: string): {
   language: string;
   region?: string;
 } {
-  const locale = new Intl.Locale(code);
-  return { language: locale.language, region: locale.region };
+  // Fork fix: on a fresh install the main-language setting is empty, and some
+  // callers pass through empty/invalid codes. `new Intl.Locale("")` throws a
+  // RangeError that crashes the whole settings view, so degrade gracefully.
+  if (!code) {
+    return { language: "" };
+  }
+  try {
+    const locale = new Intl.Locale(code);
+    return { language: locale.language, region: locale.region };
+  } catch {
+    return { language: code };
+  }
 }
 
 function getDisplayNames(displayLocale: string) {
