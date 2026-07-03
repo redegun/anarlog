@@ -60,8 +60,10 @@ def _extract_text(content):
     return str(content)
 
 
-def build_prompt(messages):
-    """Складываем messages в один промпт: system-блоки сверху, затем диалог."""
+def split_messages(messages):
+    """Разделяем на (system_text, conversation_text). System идёт в --system-prompt
+    (полностью заменяет кодинг-агентный дефолт Claude Code — иначе он навязывает
+    английский и свою роль), диалог — в stdin как -p."""
     system_parts = []
     convo = []
     for m in messages or []:
@@ -76,11 +78,9 @@ def build_prompt(messages):
         else:  # user / tool / прочее
             convo.append("User:\n" + text)
 
-    prompt = ""
-    if system_parts:
-        prompt += "\n\n".join(system_parts).strip() + "\n\n"
-    prompt += "\n\n".join(convo).strip()
-    return prompt
+    system_text = "\n\n".join(system_parts).strip()
+    convo_text = "\n\n".join(convo).strip()
+    return system_text, convo_text
 
 
 def pick_model(requested):
@@ -89,24 +89,28 @@ def pick_model(requested):
     return DEFAULT_MODEL
 
 
-def _claude_cmd(model):
+def _claude_cmd(model, system_text):
     """Формирует argv для запуска claude. На Windows claude — это .cmd (node-скрипт),
     который CreateProcess напрямую не запускает, поэтому оборачиваем в `cmd /c`."""
     exe = shutil.which(CLAUDE_BIN) or CLAUDE_BIN
     base = [exe, "-p", "--output-format", "json"]
     if model:
         base += ["--model", model]
+    if system_text:
+        # Полностью заменяем системный промпт Claude Code промптом приложения, чтобы язык
+        # и формат вывода задавал именно anarlog (а не англоязычный кодинг-агент CLI).
+        base += ["--system-prompt", system_text]
     if os.name == "nt" and exe.lower().endswith((".cmd", ".bat")):
         return ["cmd", "/c"] + base
     return base
 
 
-def run_claude(prompt, model):
-    """Вызывает claude -p, промпт через stdin. Возвращает (text, usage_dict)."""
-    cmd = _claude_cmd(model)
+def run_claude(system_text, convo_text, model):
+    """Вызывает claude -p (system → --system-prompt, диалог → stdin). Возвращает (text, usage)."""
+    cmd = _claude_cmd(model, system_text)
     proc = subprocess.run(
         cmd,
-        input=prompt,
+        input=convo_text,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -167,10 +171,10 @@ class Handler(BaseHTTPRequestHandler):
         messages = payload.get("messages", [])
         model = pick_model(payload.get("model"))
         stream = bool(payload.get("stream", False))
-        prompt = build_prompt(messages)
+        system_text, convo_text = split_messages(messages)
 
         try:
-            text, usage = run_claude(prompt, model)
+            text, usage = run_claude(system_text, convo_text, model)
         except Exception as e:
             self.log_message("claude call failed: %s", e)
             self._send_json({"error": {"message": str(e)}}, 502)
@@ -180,7 +184,7 @@ class Handler(BaseHTTPRequestHandler):
         cmpl_id = "chatcmpl-shim-%d" % created
 
         if stream:
-            self._send_stream(cmpl_id, created, model, text)
+            self._send_stream(cmpl_id, created, model, text, usage)
         else:
             self._send_json({
                 "id": cmpl_id,
@@ -199,14 +203,18 @@ class Handler(BaseHTTPRequestHandler):
                 },
             })
 
-    def _send_stream(self, cmpl_id, created, model, text):
+    def _send_stream(self, cmpl_id, created, model, text, usage):
+        # Close the connection after the stream so HTTP/1.1 clients detect end-of-body.
+        # Without Content-Length or chunked encoding, keep-alive would make streamText hang
+        # forever (spinner never resolves). Connection: close is the simplest correct signal.
+        self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")
         self.end_headers()
 
-        def chunk(delta, finish=None):
+        def chunk(delta, finish=None, extra=None):
             obj = {
                 "id": cmpl_id,
                 "object": "chat.completion.chunk",
@@ -214,12 +222,19 @@ class Handler(BaseHTTPRequestHandler):
                 "model": model,
                 "choices": [{"index": 0, "delta": delta, "finish_reason": finish}],
             }
+            if extra:
+                obj.update(extra)
             self.wfile.write(("data: " + json.dumps(obj) + "\n\n").encode("utf-8"))
 
         chunk({"role": "assistant"})
         chunk({"content": text})
-        chunk({}, finish="stop")
+        chunk({}, finish="stop", extra={"usage": {
+            "prompt_tokens": usage["prompt_tokens"],
+            "completion_tokens": usage["completion_tokens"],
+            "total_tokens": usage["total_tokens"],
+        }})
         self.wfile.write(b"data: [DONE]\n\n")
+        self.wfile.flush()
 
 
 def main():
