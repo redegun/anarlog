@@ -14,19 +14,19 @@ import { useTabs } from "~/store/zustand/tabs";
 
 const SUGGESTIONS = [
   {
-    label: "List action items.",
+    label: "Список задач.",
     icon: ListChecksIcon,
-    prompt: "What are my action items from this meeting?",
+    prompt: "Какие у меня задачи по итогам этой встречи?",
   },
   {
-    label: "Draft follow-up email.",
+    label: "Черновик письма участникам.",
     icon: MailIcon,
-    prompt: "Draft a follow-up email to the participants",
+    prompt: "Составь письмо-follow-up участникам встречи",
   },
   {
-    label: "Find key decisions.",
+    label: "Ключевые решения.",
     icon: SearchIcon,
-    prompt: "What were the key decisions that have been made?",
+    prompt: "Какие ключевые решения были приняты на встрече?",
   },
 ];
 
@@ -82,8 +82,8 @@ export function ChatBodyEmpty({
                 : "text-muted-foreground",
             ])}
           >
-            Hi, I'm Anarlog AI. Set up a language model and I'll be ready to
-            help.
+            Привет, я Anarlog AI. Подключите языковую модель — и я готов
+            помогать.
           </p>
           <button
             onClick={handleGoToSettings}
@@ -93,7 +93,7 @@ export function ChatBodyEmpty({
             ])}
           >
             <SparklesIcon size={12} />
-            Open AI Settings
+            Настройки ИИ
           </button>
         </div>
       </div>
