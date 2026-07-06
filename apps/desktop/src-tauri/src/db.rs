@@ -19,13 +19,19 @@ pub async fn open_desktop_db(identifier: &str) -> Arc<Db> {
 }
 
 fn desktop_db_dir(identifier: &str) -> Option<std::path::PathBuf> {
+    let default_dir =
+        hypr_storage::global::compute_default_base(identifier).expect("data_dir must be available");
+
+    // Dev used to run on an in-memory DB (db_path = None). With a pooled
+    // `sqlite::memory:` the single connection is recycled on idle, silently
+    // dropping the schema created at startup (templates, calendars, events) →
+    // "no such table: templates". Use a real file so the dev DB is stable and
+    // persistent next to the session data, same as production.
     if identifier == DEV_BUNDLE_ID {
-        return None;
+        return Some(default_dir);
     }
 
     let data_dir = dirs::data_dir().expect("data_dir must be available");
-    let default_dir =
-        hypr_storage::global::compute_default_base(identifier).expect("data_dir must be available");
     let identifier_dir = data_dir.join(identifier);
 
     if identifier_dir.join(DB_FILENAME).is_file() && !default_dir.join(DB_FILENAME).is_file() {
