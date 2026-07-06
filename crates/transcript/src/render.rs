@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{
-    FinalizedWord, IdentityAssignment, SegmentKey, SegmentWord, SpeakerLabelContext,
-    SpeakerLabeler, WordState, build_segments, channel_assignments_for_participants,
-    render_speaker_label, segment_options_for_participants,
+    ChannelProfile, FinalizedWord, IdentityAssignment, SegmentKey, SegmentWord,
+    SpeakerLabelContext, SpeakerLabeler, WordState, build_segments,
+    channel_assignments_for_participants, render_speaker_label, segment_options_for_participants,
 };
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
@@ -60,8 +60,23 @@ pub fn render_transcript_segments(
     } = request;
 
     let base_started_at = earliest_started_at(&transcripts);
-    let segment_options =
+    let mut segment_options =
         segment_options_for_participants(&participant_human_ids, self_human_id.as_deref());
+    // This entry renders a finalized transcript snapshot for display, so every
+    // channel that actually appears is complete. Otherwise a user "apply to all"
+    // speaker assignment only takes effect on DirectMic (and on RemoteParty only
+    // when there happen to be exactly two known participants) — which made
+    // "apply to all" silently do nothing for the system-audio speaker.
+    let present_channels: Vec<ChannelProfile> = transcripts
+        .iter()
+        .flat_map(|transcript| transcript.words.iter())
+        .map(|word| ChannelProfile::from(word.channel))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    if !present_channels.is_empty() {
+        segment_options.complete_channels = Some(present_channels);
+    }
 
     let mut all_segments = Vec::new();
 
@@ -71,11 +86,16 @@ pub fn render_transcript_segments(
             .map(|started_at| started_at - base_started_at)
             .unwrap_or(0);
 
-        let (words, mut assignments) =
+        let (words, user_assignments) =
             offset_transcript_data(transcript.words, transcript.assignments, offset);
-        let channel_assignments =
+        // Participant-derived channel assignments (e.g. "self is DirectMic") are
+        // heuristics; the user's explicit "apply to all" choices must win. Speaker
+        // resolution is last-write-wins, so seed with the auto assignments first and
+        // append the user ones. Otherwise auto "DirectMic -> self" (a blank-name self
+        // human) silently overrode an explicit speaker assigned to the mic channel.
+        let mut assignments =
             channel_assignments_for_participants(&participant_human_ids, self_human_id.as_deref());
-        assignments.extend(channel_assignments);
+        assignments.extend(user_assignments);
 
         let segments = build_segments(&words, &[], &assignments, Some(&segment_options));
         all_segments.extend(segments);
@@ -426,6 +446,65 @@ mod tests {
         assert_eq!(segments.len(), 1);
         assert_eq!(segments[0].speaker_label, "Remote");
         assert_eq!(segments[0].text, "remote reply");
+    }
+
+    #[test]
+    fn applies_channel_assignment_even_without_two_participants() {
+        // Regression: a user "apply to all" assignment on a non-DirectMic channel
+        // must relabel that whole channel when rendering a finalized transcript,
+        // even if there aren't exactly two known participants (which used to be the
+        // only condition that marked RemoteParty complete).
+        let segments = render_transcript_segments(RenderTranscriptRequest {
+            transcripts: vec![RenderTranscriptInput {
+                started_at: Some(0),
+                words: vec![
+                    word("w1", " remote", 0, 100, 1),
+                    word("w2", " reply", 120, 220, 1),
+                ],
+                assignments: vec![channel_assignment("remote", ChannelProfile::RemoteParty)],
+            }],
+            participant_human_ids: vec![],
+            self_human_id: None,
+            humans: vec![RenderTranscriptHuman {
+                human_id: "remote".to_string(),
+                name: "Remote".to_string(),
+            }],
+        });
+
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].speaker_label, "Remote");
+    }
+
+    #[test]
+    fn user_direct_mic_assignment_overrides_auto_self() {
+        // Regression: an explicit "apply to all" assignment on the mic channel must
+        // win over the automatic "DirectMic -> self" heuristic, even when a self
+        // human exists (here with a blank name, as the default self human has).
+        let segments = render_transcript_segments(RenderTranscriptRequest {
+            transcripts: vec![RenderTranscriptInput {
+                started_at: Some(0),
+                words: vec![
+                    word("w1", " hello", 0, 100, 0),
+                    word("w2", " there", 120, 220, 0),
+                ],
+                assignments: vec![channel_assignment("anton", ChannelProfile::DirectMic)],
+            }],
+            participant_human_ids: vec!["anton".to_string()],
+            self_human_id: Some("self".to_string()),
+            humans: vec![
+                RenderTranscriptHuman {
+                    human_id: "self".to_string(),
+                    name: "".to_string(),
+                },
+                RenderTranscriptHuman {
+                    human_id: "anton".to_string(),
+                    name: "Anton".to_string(),
+                },
+            ],
+        });
+
+        assert_eq!(segments.len(), 1);
+        assert_eq!(segments[0].speaker_label, "Anton");
     }
 
     #[test]
