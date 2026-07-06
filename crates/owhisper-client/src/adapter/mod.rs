@@ -426,18 +426,27 @@ pub enum AdapterKind {
     Pyannote,
     #[strum(serialize = "hyprnote")]
     Hyprnote,
+    #[strum(serialize = "whispercpp")]
+    WhisperCpp,
 }
 
 impl AdapterKind {
     pub fn from_url_and_languages(
         base_url: &str,
         _languages: &[hypr_language::Language],
-        _model: Option<&str>,
+        model: Option<&str>,
     ) -> Self {
         use crate::providers::Provider;
 
         if is_hyprnote_proxy(base_url) {
             return Self::Hyprnote;
+        }
+
+        // The in-process whisper.cpp server (local Quantized* models) speaks the
+        // /v1/listen protocol via WhisperCppAdapter. Detect it by model so it isn't
+        // mistaken for local Argmax/Soniqo (which share the localhost base URL).
+        if model.is_some_and(|m| m.starts_with("Quantized")) {
+            return Self::WhisperCpp;
         }
 
         if is_local_argmax(base_url) {
@@ -461,7 +470,8 @@ impl AdapterKind {
             | Self::ElevenLabs
             | Self::DashScope
             | Self::Mistral
-            | Self::Hyprnote => true,
+            | Self::Hyprnote
+            | Self::WhisperCpp => true,
         }
     }
 
@@ -488,6 +498,9 @@ impl AdapterKind {
             Self::Mistral => MistralAdapter::language_support_live(languages),
             Self::Pyannote => LanguageSupport::NotSupported,
             Self::Hyprnote => HyprnoteAdapter::language_support_live(languages, model),
+            Self::WhisperCpp => LanguageSupport::Supported {
+                quality: LanguageQuality::NoData,
+            },
         }
     }
 
@@ -514,6 +527,9 @@ impl AdapterKind {
             Self::Mistral => MistralAdapter::language_support_batch(languages),
             Self::Pyannote => PyannoteAdapter::language_support_batch(languages, model),
             Self::Hyprnote => HyprnoteAdapter::language_support_batch(languages, model),
+            Self::WhisperCpp => LanguageSupport::Supported {
+                quality: LanguageQuality::NoData,
+            },
         }
     }
 

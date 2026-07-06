@@ -148,6 +148,16 @@ export function getOnDeviceTranscriptionConfig(
   model: string | null | undefined,
   languages: readonly string[],
 ): LiveTranscriptionConfig {
+  // Local whisper.cpp (Quantized* models) now streams live during capture via the
+  // in-process /v1/listen server + WhisperCppAdapter. Whisper is multilingual, so
+  // pass the languages through unfiltered instead of forcing post-capture batch.
+  if (typeof model === "string" && model.startsWith("Quantized")) {
+    return {
+      languages: [...languages],
+      transcriptionMode: "live",
+    };
+  }
+
   if (!isRealtimeLocalModel(model)) {
     return {
       languages: [...languages],
