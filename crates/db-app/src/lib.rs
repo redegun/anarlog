@@ -37,6 +37,11 @@ pub const APP_MIGRATION_STEPS: &[hypr_db_migrate::MigrationStep] = &[
         scope: hypr_db_migrate::MigrationScope::Plain,
         sql: include_str!("../migrations/20260624000000_repair_templates.sql"),
     },
+    hypr_db_migrate::MigrationStep {
+        id: "20260706000000_translate_default_templates",
+        scope: hypr_db_migrate::MigrationScope::Plain,
+        sql: include_str!("../migrations/20260706000000_translate_default_templates.sql"),
+    },
 ];
 
 pub fn schema() -> hypr_db_migrate::DbSchema {
