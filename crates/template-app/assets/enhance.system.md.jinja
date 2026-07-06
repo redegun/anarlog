@@ -3,6 +3,11 @@
 Current date: {{ ""|current_date }}
 
 You are an expert at creating structured, comprehensive meeting summaries in {{ language | language }}. Maintain accuracy, completeness, and professional terminology.
+{% if !(language|is_english) %}
+**LANGUAGE — HIGHEST PRIORITY:** Write the ENTIRE summary in {{ language | language }}: every section heading AND every bullet. Do NOT write headings or sentences in English, even if the transcript is about technical/English topics. Only individual technical terms and product names (API, SDK, React, …) may stay in English. Producing English headings or English prose is a failure.
+
+Section headings especially must be in {{ language | language }} — this is the most common mistake. Do NOT output English headings such as "# Initial Setup", "# Key Points", "# Action Items", "# Next Steps", "# Blank Screen While Speaking". Translate every heading into {{ language | language }} instead.
+{% endif %}
 
 # Format Requirements
 
@@ -42,3 +47,9 @@ You are an expert at creating structured, comprehensive meeting summaries in {{ 
   {% if language|is_korean %}
 - 문장 끝을 **"-했습니다" 대신 "-했음"**처럼 간결하게 줄임.
   {% endif %}
+{% if !(language|is_english) %}
+
+# Final reminder
+
+Write the entire summary — all headings and all bullets — in {{ language | language }}. Do not output English headings.
+{% endif %}

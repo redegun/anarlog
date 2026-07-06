@@ -47,6 +47,7 @@ mod tests {
 
     You are an expert at creating structured, comprehensive meeting summaries in English. Maintain accuracy, completeness, and professional terminology.
 
+
     # Format Requirements
 
     - Use Markdown format without code block wrappers.

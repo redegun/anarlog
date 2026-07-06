@@ -152,7 +152,7 @@ async function generateTemplateIfNeeded(params: {
       model,
       schema,
       signal,
-      prompt: createTemplatePrompt(userPrompt, schema),
+      prompt: createTemplatePrompt(userPrompt, schema, args.language),
       imageContext: [],
     });
 
@@ -172,13 +172,23 @@ async function generateTemplateIfNeeded(params: {
 function createTemplatePrompt(
   userPrompt: string,
   schema: z.ZodObject<any>,
+  language: string | null,
 ): string {
+  // These generated section titles become the summary's headings, so they must
+  // be in the user's language — otherwise the summary ends up with English
+  // headings (and the model tends to follow the English structure into an
+  // English body). See enhance.system.md.jinja for the matching body rule.
+  const languageRule =
+    language && !language.toLowerCase().startsWith("en")
+      ? `\n  LANGUAGE: Write EVERY section title in the user's language (code: "${language}"). Do NOT write section titles in English. Only keep individual technical terms and product names (API, React, …) in their original form.`
+      : "";
+
   return `Analyze this meeting content and suggest appropriate section headings for a comprehensive summary.
   The sections should cover the main themes and topics discussed.
   Generate around 5-7 sections based on the content depth.
   Avoid generic catch-all headings like "Overview", "Meeting Overview", "Introduction", "Summary", or "Participants".
   Prefer concrete, topic-specific section titles tied to the actual discussion.
-  Do not create a standalone participants section unless the meeting materially focused on stakeholder roles, ownership, or org structure.
+  Do not create a standalone participants section unless the meeting materially focused on stakeholder roles, ownership, or org structure.${languageRule}
   Give me in bullet points.
 
   Content:
