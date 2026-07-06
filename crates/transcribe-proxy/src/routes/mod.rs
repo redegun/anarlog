@@ -24,7 +24,12 @@ use crate::supabase::SupabaseClient;
 
 pub(crate) use error::{RouteError, parse_async_provider};
 
-const MAX_BATCH_AUDIO_BODY_BYTES: usize = 512 * 1024 * 1024;
+// Post-capture batch audio is a stereo f32 16kHz WAV (mic + speaker channels),
+// so it grows ~7.6 MB/min. The old 512 MiB cap rejected any meeting over ~68 min
+// with a bare axum "length limit exceeded" (400). Raise it to cover long meetings
+// (~2 GiB ≈ 4.5h). Long-term the client should chunk/downmix instead of posting
+// the whole recording in one body.
+const MAX_BATCH_AUDIO_BODY_BYTES: usize = 2 * 1024 * 1024 * 1024;
 
 #[derive(Clone)]
 pub(crate) struct AppState {
