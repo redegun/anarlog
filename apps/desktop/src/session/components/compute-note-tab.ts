@@ -16,6 +16,12 @@ export function computeCurrentNoteTab(
     if (tabView?.type === "enhanced" && firstEnhancedNoteId) {
       return tabView;
     }
+    // No explicit view chosen during recording: surface the live transcript so
+    // the user sees words appear instead of a blank notes page. Switching to the
+    // notes ("raw") tab sets an explicit view and is respected above.
+    if (!tabView && canShowTranscript) {
+      return { type: "transcript" };
+    }
     return { type: "raw" };
   }
 

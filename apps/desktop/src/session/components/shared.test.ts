@@ -236,6 +236,11 @@ describe("computeCurrentNoteTab", () => {
       const result = computeCurrentNoteTab(null, true, "note-1");
       expect(result).toEqual({ type: "raw" });
     });
+
+    it("defaults to the live transcript during recording when it can show", () => {
+      const result = computeCurrentNoteTab(null, true, "note-1", true);
+      expect(result).toEqual({ type: "transcript" });
+    });
   });
 
   describe("when not listening", () => {
