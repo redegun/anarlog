@@ -15,7 +15,7 @@ import { useConfigValue } from "~/shared/config";
 import * as settings from "~/store/tinybase/store/settings";
 import { normalizeKeywordList, parseDictionaryTermsText } from "~/stt/keywords";
 
-const EXAMPLE_DICTIONARY_TERMS = ["Anarlog", "FastConformer", "Parakeet TDT"];
+const EXAMPLE_DICTIONARY_TERMS = ["Толмач", "FastConformer", "Parakeet TDT"];
 
 export function SettingsPersonalization() {
   const terms = useConfigValue("personalization_dictionary_terms");

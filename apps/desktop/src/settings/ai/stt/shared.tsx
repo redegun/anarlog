@@ -170,7 +170,7 @@ const _PROVIDERS = [
   {
     disabled: false,
     id: "hyprnote",
-    displayName: "Anarlog",
+    displayName: "Толмач",
     badge: "Recommended",
     icon: <AnarlogProviderIcon />,
     baseUrl: new URL("/stt", env.VITE_API_URL).toString(),

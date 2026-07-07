@@ -310,7 +310,7 @@ describe("session correction chat tool internals", () => {
     };
     const store = createStore(tables);
     const settingsStore = createSettingsStore({
-      personalization_dictionary_terms: JSON.stringify(["Anarlog"]),
+      personalization_dictionary_terms: JSON.stringify(["Толмач"]),
     });
     const indexes = createIndexes(tables);
     const tool = buildApplySessionCorrectionTool({
@@ -352,7 +352,7 @@ describe("session correction chat tool internals", () => {
     );
     expect(settingsStore.setValue).toHaveBeenCalledWith(
       "personalization_dictionary_terms",
-      JSON.stringify(["Anarlog", "Erebor"]),
+      JSON.stringify(["Толмач", "Erebor"]),
     );
   });
 

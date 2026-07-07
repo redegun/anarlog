@@ -110,7 +110,7 @@ describe("settingsPersister roundtrip", () => {
         spoken_languages: ["en", "ko"],
       },
       personalization: {
-        dictionary_terms: ["Anarlog", "Parakeet TDT"],
+        dictionary_terms: ["Толмач", "Parakeet TDT"],
       },
     };
 
@@ -192,7 +192,7 @@ describe("settingsPersister roundtrip", () => {
       telemetry_consent: false,
       ai_language: "en",
       spoken_languages: '["en","ko"]',
-      personalization_dictionary_terms: '["Anarlog","Parakeet TDT"]',
+      personalization_dictionary_terms: '["Толмач","Parakeet TDT"]',
       mic_active_threshold: 15,
     });
 

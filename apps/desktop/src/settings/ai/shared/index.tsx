@@ -60,7 +60,7 @@ export function AnarlogProviderIcon() {
   return (
     <img
       src={ANARLOG_ICON_SRC}
-      alt="Anarlog"
+      alt="Толмач"
       data-slot="provider-logo"
       className="size-4 object-contain object-center [clip-path:inset(6%_round_18%)]"
     />

@@ -139,20 +139,20 @@ describe("buildKeywordSourceText", () => {
 describe("dictionary term helpers", () => {
   it("parses newline and comma separated terms", () => {
     expect(
-      parseDictionaryTermsText("Anarlog\nFastConformer, Parakeet TDT"),
-    ).toEqual(["Anarlog", "FastConformer", "Parakeet TDT"]);
+      parseDictionaryTermsText("Толмач\nFastConformer, Parakeet TDT"),
+    ).toEqual(["Толмач", "FastConformer", "Parakeet TDT"]);
   });
 
   it("normalizes duplicate terms while preserving first spelling", () => {
-    expect(normalizeKeywordList(["Anarlog", " anarlog ", "Parakeet"])).toEqual([
-      "Anarlog",
+    expect(normalizeKeywordList(["Толмач", " anarlog ", "Parakeet"])).toEqual([
+      "Толмач",
       "Parakeet",
     ]);
   });
 
   it("formats stored terms one per line", () => {
-    expect(formatDictionaryTerms(["Anarlog", "Parakeet TDT"])).toBe(
-      "Anarlog\nParakeet TDT",
+    expect(formatDictionaryTerms(["Толмач", "Parakeet TDT"])).toBe(
+      "Толмач\nParakeet TDT",
     );
   });
 });

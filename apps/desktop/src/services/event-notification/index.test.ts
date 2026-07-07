@@ -58,7 +58,7 @@ describe("checkEventNotifications", () => {
     expect(showNotificationMock).toHaveBeenCalledWith(
       expect.objectContaining({
         source: { type: "calendar_event", event_id: "event-1" },
-        action_label: "Open Anarlog",
+        action_label: "Open Толмач",
         participants: null,
         event_details: null,
         options: null,

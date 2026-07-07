@@ -57,7 +57,7 @@ describe("DictionarySettings", () => {
 
   it("adds entered terms and keeps them normalized", async () => {
     const onSave = vi.fn();
-    render(<DictionarySettings terms={["Anarlog"]} onSave={onSave} />);
+    render(<DictionarySettings terms={["Толмач"]} onSave={onSave} />);
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: " FastConformer, Parakeet TDT " },
@@ -70,7 +70,7 @@ describe("DictionarySettings", () => {
 
     await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
-        JSON.stringify(["Anarlog", "FastConformer", "Parakeet TDT"]),
+        JSON.stringify(["Толмач", "FastConformer", "Parakeet TDT"]),
       ),
     );
   });
@@ -79,18 +79,18 @@ describe("DictionarySettings", () => {
     const onSave = vi.fn();
     render(
       <DictionarySettings
-        terms={["Anarlog", "Parakeet TDT"]}
+        terms={["Толмач", "Parakeet TDT"]}
         onSave={onSave}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Anarlog" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Толмач" }));
 
     expect(onSave).toHaveBeenCalledWith(JSON.stringify(["Parakeet TDT"]));
   });
 
   it("does not enable adding duplicate terms", async () => {
-    render(<DictionarySettings terms={["Anarlog"]} onSave={vi.fn()} />);
+    render(<DictionarySettings terms={["Толмач"]} onSave={vi.fn()} />);
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "anarlog" },

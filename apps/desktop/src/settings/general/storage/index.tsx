@@ -292,7 +292,7 @@ function ChangeContentPathDialog({
           </DialogTitle>
           <DialogDescription>
             <Trans>
-              Choose where Anarlog should store data. (notes, settings, etc)
+              Choose where Толмач should store data. (notes, settings, etc)
             </Trans>
           </DialogDescription>
         </DialogHeader>

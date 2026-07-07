@@ -63,7 +63,7 @@ export function FinalSection({ onContinue }: { onContinue: () => void }) {
       className="px-6 py-2 text-sm"
       onClick={() => void finishOnboarding(onContinue)}
     >
-      <Trans>Open Anarlog</Trans>
+      <Trans>Open Толмач</Trans>
     </OnboardingButton>
   );
 }

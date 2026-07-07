@@ -33,7 +33,7 @@ export type Provider = {
 const _PROVIDERS = [
   {
     id: "hyprnote",
-    displayName: "Anarlog",
+    displayName: "Толмач",
     badge: "Recommended",
     icon: <AnarlogProviderIcon />,
     baseUrl: new URL("/llm", env.VITE_API_URL).toString(),

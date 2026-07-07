@@ -158,7 +158,7 @@ export function SelectProviderAndModel() {
         <SettingsAlert>
           <Trans>
             <strong className="font-medium">Transcription model</strong> is
-            needed to make Anarlog listen to your conversations.
+            needed to make Толмач listen to your conversations.
           </Trans>
         </SettingsAlert>
       )}

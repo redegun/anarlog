@@ -116,7 +116,7 @@ describe("syncCalendars", () => {
       user_id: "user-1",
       created_at: "2026-03-25T00:00:00.000Z",
       tracking_id_calendar: "primary",
-      name: "John (Anarlog)",
+      name: "John (Толмач)",
       enabled: true,
       provider: "google",
       source: "john@char.com",
@@ -132,7 +132,7 @@ describe("syncCalendars", () => {
             data: [
               {
                 id: "primary",
-                title: "John (Anarlog)",
+                title: "John (Толмач)",
                 source: "john@char.com",
                 color: "#4285f4",
               },
@@ -172,7 +172,7 @@ describe("syncCalendars", () => {
       calendars.find((calendar) => calendar.connection_id === "conn-john"),
     ).toMatchObject({
       tracking_id_calendar: "primary",
-      name: "John (Anarlog)",
+      name: "John (Толмач)",
       enabled: true,
       source: "john@char.com",
     });
@@ -193,7 +193,7 @@ describe("syncCalendars", () => {
       user_id: "user-1",
       created_at: "2026-03-25T00:00:00.000Z",
       tracking_id_calendar: "primary",
-      name: "John (Anarlog)",
+      name: "John (Толмач)",
       enabled: true,
       provider: "google",
       source: "john@char.com",
