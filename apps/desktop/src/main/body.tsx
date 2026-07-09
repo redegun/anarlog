@@ -33,6 +33,7 @@ import { cn } from "@hypr/utils";
 
 import { ClassicMainSidebar } from "./shell-sidebar";
 import { ClassicMainTabContent } from "./tab-content";
+import { WindowControls } from "./window-controls";
 import {
   type DesktopUpdateControl,
   SidebarTimelineUpdateButton,
@@ -511,6 +512,12 @@ export function ClassicMainBody() {
       style={leftSidebarSizeStyle}
       className="relative flex h-full min-w-0 flex-1 flex-col"
     >
+      <div
+        data-tauri-drag-region="false"
+        className="absolute top-0 right-0 z-50 flex h-10 items-center pr-1"
+      >
+        <WindowControls />
+      </div>
       {isOnboarding ? null : showSidebarTimelineChrome ? (
         <div
           data-tauri-drag-region
