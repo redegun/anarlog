@@ -514,7 +514,7 @@ export function ClassicMainBody() {
     >
       <div
         data-tauri-drag-region="false"
-        className="absolute top-0 right-0 z-50 flex h-10 items-center pr-1"
+        className="absolute top-0 right-0 z-50 flex h-10 items-center"
       >
         <WindowControls />
       </div>

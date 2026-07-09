@@ -1,8 +1,11 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChevronDownIcon, HeadsetIcon, VideoIcon } from "lucide-react";
+import { platform } from "@tauri-apps/plugin-os";
 
 import { commands as openerCommands } from "@hypr/plugin-opener2";
 import { cn, safeParseDate } from "@hypr/utils";
+
+import { WINDOW_CONTROLS_WIDTH_PX } from "~/main/window-controls";
 
 import { MetadataButton } from "./metadata";
 import { OverflowButton } from "./overflow";
@@ -35,6 +38,10 @@ export function OuterHeader({
   const showSidebarTimelineHeaderGutter =
     !standaloneWindow && !leftsidebar.expanded;
   const showExpandedSidebarTimelineHeader = leftsidebar.expanded;
+  // The main window renders custom window controls in its top-right; reserve
+  // room so this header's controls sit to their left instead of underneath.
+  // Standalone note windows and macOS (native traffic lights) don't need it.
+  const reserveForWindowControls = !standaloneWindow && platform() !== "macos";
 
   return (
     <div
@@ -71,7 +78,12 @@ export function OuterHeader({
       ) : null}
       <div
         data-tauri-drag-region
-        className="relative z-10 ml-auto flex shrink-0 items-center gap-0 pr-1"
+        className="relative z-10 ml-auto flex shrink-0 items-center gap-0"
+        style={{
+          paddingRight: reserveForWindowControls
+            ? WINDOW_CONTROLS_WIDTH_PX + 8
+            : 4,
+        }}
       >
         <HeaderMeetingControl sessionId={sessionId} sessionMode={sessionMode} />
         <OverflowButton

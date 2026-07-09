@@ -5,6 +5,11 @@ import type { ReactNode } from "react";
 
 import { cn } from "@hypr/utils";
 
+// Total pixel width of the controls (3 buttons × w-11 = 3 × 44px). Top-right app
+// chrome reserves this much space on frameless platforms so it doesn't sit under
+// the controls.
+export const WINDOW_CONTROLS_WIDTH_PX = 132;
+
 // Custom window controls for frameless windows. macOS keeps its native
 // traffic-light buttons (the window is created with decorations there), so we
 // only render these on platforms where the window is frameless (Windows/Linux).
