@@ -7,7 +7,6 @@ import { commands as trayCommands } from "@hypr/plugin-tray";
 import { commands as windowsCommands } from "@hypr/plugin-windows";
 import type { General, GeneralStorage } from "@hypr/store";
 
-export { SettingsAccount } from "./account";
 import { AppSettingsView } from "./app-settings";
 import {
   CORE_TRANSCRIPTION_LANGUAGE_CODES,
