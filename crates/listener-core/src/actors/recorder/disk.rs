@@ -16,6 +16,17 @@ const WAV_FILE: &str = "audio.wav";
 const OGG_FILE: &str = "audio.ogg";
 const FLUSH_INTERVAL: std::time::Duration = std::time::Duration::from_millis(1000);
 
+// A WAV file stores its data size in a 32-bit field, so it cannot physically
+// exceed 4 GiB — hound's internal byte counter overflows (panic) at that point,
+// which used to crash the recorder into a restart meltdown on very long
+// recordings. Cap the WAV data well below that: 1.8 GiB is ~3.9 h of 16 kHz
+// stereo f32 audio and also stays under the batch-transcription body limit
+// (2 GiB), so a capped file can still be re-transcribed. On reaching the cap we
+// finalize the file cleanly and simply stop writing to disk; the live session
+// and transcript keep running.
+const MAX_WAV_DATA_BYTES: u64 = 1_800_000_000;
+const BYTES_PER_SAMPLE: u64 = 4; // 32-bit float
+
 pub(super) struct DiskSink {
     writer: Option<hound::WavWriter<BufWriter<File>>>,
     writer_mic: Option<hound::WavWriter<BufWriter<File>>>,
@@ -23,6 +34,12 @@ pub(super) struct DiskSink {
     wav_path: PathBuf,
     last_flush: Instant,
     is_stereo: bool,
+    // Bytes of sample data written to the main `audio.wav` writer, tracked so we
+    // can stop before the WAV 4 GiB / u32 limit. The main (possibly stereo)
+    // writer grows fastest, so capping it also keeps the mono mic/spk writers
+    // safely under the limit.
+    main_data_bytes: u64,
+    size_capped: bool,
 }
 
 pub(super) fn create_disk_sink(session_dir: &Path) -> Result<DiskSink, ActorProcessingErr> {
@@ -73,6 +90,16 @@ pub(super) fn create_disk_sink(session_dir: &Path) -> Result<DiskSink, ActorProc
         (None, None)
     };
 
+    // Seed the counter with any pre-existing WAV data so resumed sessions still
+    // honor the cap (file size minus the 44-byte header).
+    let main_data_bytes = if wav_path.exists() {
+        std::fs::metadata(&wav_path)
+            .map(|m| m.len().saturating_sub(44))
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
     Ok(DiskSink {
         writer: Some(writer),
         writer_mic,
@@ -80,15 +107,46 @@ pub(super) fn create_disk_sink(session_dir: &Path) -> Result<DiskSink, ActorProc
         wav_path,
         last_flush: Instant::now(),
         is_stereo,
+        main_data_bytes,
+        size_capped: false,
     })
 }
 
+/// Returns true if `additional` sample bytes still fit under the WAV cap. On the
+/// transition to "full" it finalizes all writers cleanly and marks the sink
+/// capped, so subsequent writes become no-ops instead of overflowing hound.
+fn reserve_main_bytes(sink: &mut DiskSink, additional: u64) -> bool {
+    if sink.size_capped {
+        return false;
+    }
+    if sink.main_data_bytes.saturating_add(additional) > MAX_WAV_DATA_BYTES {
+        sink.size_capped = true;
+        tracing::warn!(
+            wav_bytes = sink.main_data_bytes,
+            "audio WAV reached the size cap; finalizing file and stopping disk recording (session and transcript continue)"
+        );
+        let _ = finalize_writer(&mut sink.writer, Some(&sink.wav_path));
+        let _ = finalize_writer(&mut sink.writer_mic, None);
+        let _ = finalize_writer(&mut sink.writer_spk, None);
+        return false;
+    }
+    sink.main_data_bytes += additional;
+    true
+}
+
 pub(super) fn write_single(sink: &mut DiskSink, samples: &[f32]) -> Result<(), ActorProcessingErr> {
-    if let Some(writer) = sink.writer.as_mut() {
-        if sink.is_stereo {
-            write_mono_as_stereo(writer, samples)?;
-        } else {
-            write_mono_samples(writer, samples)?;
+    let is_stereo = sink.is_stereo;
+    let main_bytes = samples.len() as u64
+        * BYTES_PER_SAMPLE
+        * if is_stereo { 2 } else { 1 };
+
+    if reserve_main_bytes(sink, main_bytes) {
+        if let Some(writer) = sink.writer.as_mut() {
+            if is_stereo {
+                write_mono_as_stereo(writer, samples)?;
+            } else {
+                write_mono_samples(writer, samples)?;
+            }
         }
     }
 
@@ -101,15 +159,23 @@ pub(super) fn write_dual(
     mic: &[f32],
     spk: &[f32],
 ) -> Result<(), ActorProcessingErr> {
-    if let Some(writer) = sink.writer.as_mut() {
-        if sink.is_stereo {
-            write_interleaved_stereo(writer, mic, spk)?;
-        } else {
-            let mixed = mix_audio_f32(mic, spk);
-            write_mono_samples(writer, &mixed)?;
+    let is_stereo = sink.is_stereo;
+    let frames = mic.len().max(spk.len()) as u64;
+    let main_bytes = frames * BYTES_PER_SAMPLE * if is_stereo { 2 } else { 1 };
+
+    if reserve_main_bytes(sink, main_bytes) {
+        if let Some(writer) = sink.writer.as_mut() {
+            if is_stereo {
+                write_interleaved_stereo(writer, mic, spk)?;
+            } else {
+                let mixed = mix_audio_f32(mic, spk);
+                write_mono_samples(writer, &mixed)?;
+            }
         }
     }
 
+    // Debug mic/spk writers stop together with the main file: reserve_main_bytes
+    // finalizes them (sets them to None) once the cap is hit.
     if let Some(writer_mic) = sink.writer_mic.as_mut() {
         write_mono_samples(writer_mic, mic)?;
     }
