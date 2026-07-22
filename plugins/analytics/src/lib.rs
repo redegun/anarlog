@@ -34,19 +34,12 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .invoke_handler(specta_builder.invoke_handler())
         .setup(|app, _api| {
-            let posthog_key = {
-                #[cfg(not(debug_assertions))]
-                {
-                    let v = env!("POSTHOG_API_KEY");
-                    assert!(v.starts_with("phc_"));
-                    Some(v)
-                }
-
-                #[cfg(debug_assertions)]
-                {
-                    option_env!("POSTHOG_API_KEY")
-                }
-            };
+            // Analytics is opt-in via a build-time key. Release used to hard-require
+            // it (env! + assert), which breaks any build without the upstream
+            // PostHog key. Treat it as optional in both profiles: no key (or a
+            // malformed one) simply leaves analytics disabled.
+            let posthog_key =
+                option_env!("POSTHOG_API_KEY").filter(|value| value.starts_with("phc_"));
 
             let client = {
                 let mut builder = hypr_analytics::AnalyticsClientBuilder::default();
